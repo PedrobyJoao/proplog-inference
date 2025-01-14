@@ -1,5 +1,12 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Logic where
+module Logic
+    ( Proposition(..)
+    , Symbol(..)
+    , Model
+    , eval
+    , doesEntail
+    , getSymbols
+    ) where
 
 import           Data.Hashable
 import qualified Data.HashMap.Strict as HM
