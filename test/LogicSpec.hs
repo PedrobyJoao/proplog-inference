@@ -94,3 +94,34 @@ spec = do
                 let prop = AndT p (OrT q r)
                 getSymbols prop `shouldBe` Set.fromList [Symbol "p", Symbol "q", Symbol "r"]
 
+        describe "doesEntail" $ do
+            it "validates simple entailment" $ do
+                let kb = p
+                    query = p
+                    symbols = getSymbols kb `Set.union` getSymbols query
+                doesEntail kb query symbols HM.empty `shouldBe` True
+
+            it "validates modus ponens" $ do
+                let kb = AndT (ImpliesT p q) p
+                    query = q
+                    symbols = getSymbols kb `Set.union` getSymbols query
+                doesEntail kb query symbols HM.empty `shouldBe` True
+
+            it "validates modus tollens" $ do
+                let kb = AndT (ImpliesT p q) (NotT q)
+                    query = NotT p
+                    symbols = getSymbols kb `Set.union` getSymbols query
+                doesEntail kb query symbols HM.empty `shouldBe` True
+
+            it "validates disjunctive syllogism" $ do
+                let kb = AndT (OrT p q) (NotT p)
+                    query = q
+                    symbols = getSymbols kb `Set.union` getSymbols query
+                doesEntail kb query symbols HM.empty `shouldBe` True
+
+            it "rejects invalid entailment" $ do
+                let kb = OrT p q
+                    query = p
+                    symbols = getSymbols kb `Set.union` getSymbols query
+                doesEntail kb query symbols HM.empty `shouldBe` False
+
