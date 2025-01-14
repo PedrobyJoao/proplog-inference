@@ -6,29 +6,29 @@ import qualified Data.Set            as Set
 import           Logic
 import           Test.Hspec
 
--- Smart constructors for common patterns
-pattern AndT :: Proposition -> Proposition -> Proposition
+-- Pattern synonyms remain the same but need type annotations
+pattern AndT :: Proposition a -> Proposition a -> Proposition a
 pattern AndT a b <- Logic.And a b
   where AndT a b = Logic.And a b
 
-pattern OrT :: Proposition -> Proposition -> Proposition
+pattern OrT :: Proposition a -> Proposition a -> Proposition a
 pattern OrT a b <- Logic.Or a b
   where OrT a b = Logic.Or a b
 
-pattern ImpliesT :: Proposition -> Proposition -> Proposition
+pattern ImpliesT :: Proposition a -> Proposition a -> Proposition a
 pattern ImpliesT a b <- Logic.Implies a b
   where ImpliesT a b = Logic.Implies a b
 
-pattern BicondT :: Proposition -> Proposition -> Proposition
+pattern BicondT :: Proposition a -> Proposition a -> Proposition a
 pattern BicondT a b <- Logic.Bicond a b
   where BicondT a b = Logic.Bicond a b
 
-pattern NotT :: Proposition -> Proposition
+pattern NotT :: Proposition a -> Proposition a
 pattern NotT a <- Logic.Not a
   where NotT a = Logic.Not a
 
--- Smart constructor for atoms
-p, q, r :: Proposition
+-- Smart constructor for atoms now needs type annotation
+p, q, r :: Proposition String
 p = Atom (Symbol "p")
 q = Atom (Symbol "q")
 r = Atom (Symbol "r")

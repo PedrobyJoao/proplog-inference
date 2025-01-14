@@ -27,26 +27,26 @@ import           GHC.Generics        (Generic)
 --  if it is true:
 --      evaluate(kb, query)
 
--- TODO: smart constructors for the types
+-- TODO: smart constructors for the types with validatiors
 
-newtype Symbol = Symbol String
+newtype Symbol a = Symbol a
     deriving (Show, Eq, Generic, Ord)
 
-instance Hashable Symbol
+instance Hashable a => Hashable (Symbol a)
 
-data Proposition
-    = Atom Symbol
-    | And Proposition Proposition
-    | Or Proposition Proposition
-    | Not Proposition
-    | Implies Proposition Proposition
-    | Bicond Proposition Proposition
+data Proposition a
+    = Atom (Symbol a)
+    | And (Proposition a) (Proposition a)
+    | Or (Proposition a) (Proposition a)
+    | Not (Proposition a)
+    | Implies (Proposition a) (Proposition a)
+    | Bicond (Proposition a) (Proposition a)
     deriving (Show, Eq)
 
-type Model = HM.HashMap Symbol Bool
+type Model a = HM.HashMap (Symbol a) Bool
 
 -- | Evaluates if a proposition is true given a model
-eval :: Proposition -> Model -> Bool
+eval :: (Hashable a, Eq a) => Proposition a -> Model a -> Bool
 eval (Atom s) model      = HM.lookup s model == Just True
 eval (And p q) model     = eval p model && eval q model
 eval (Or p q) model      = eval p model || eval q model
@@ -55,7 +55,7 @@ eval (Implies p q) model = not (eval p model) || eval q model
 eval (Bicond p q) model  = eval p model == eval q model
 
 -- | Checks if kb |= query
-doesEntail :: Proposition -> Proposition -> Set.Set Symbol -> Model -> Bool
+doesEntail :: (Hashable a, Eq a, Ord a) => Proposition a -> Proposition a -> Set.Set (Symbol a) -> Model a -> Bool
 doesEntail kb query symbols model
     | null symbols = if eval kb model then eval query model else True
     | otherwise =
@@ -68,7 +68,7 @@ doesEntail kb query symbols model
            doesEntail kb query remaining falseModel
 
 -- | Returns all symbols in a proposition
-getSymbols :: Proposition -> Set.Set Symbol
+getSymbols :: Ord a => Proposition a -> Set.Set (Symbol a)
 getSymbols prop = case prop of
     Atom s      -> Set.singleton s
     And p q     -> getSymbols p `Set.union` getSymbols q
