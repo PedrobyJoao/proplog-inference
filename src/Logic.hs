@@ -1,7 +1,10 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Logic where
 
+import           Data.Hashable
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Set            as Set
+import           GHC.Generics        (Generic)
 
 -- suppose a knowledge base `kb`:
 -- kb: And(
@@ -27,7 +30,9 @@ import qualified Data.Set            as Set
 -- TODO: smart constructors for the types
 
 newtype Symbol = Symbol String
-    deriving (Show, Eq)
+    deriving (Show, Eq, Generic, Ord)
+
+instance Hashable Symbol
 
 data Proposition
     = Atom Symbol
