@@ -36,10 +36,15 @@ r = Atom (Symbol "r")
 spec :: Spec
 spec = do
     describe "Logic" $ do
+
         describe "eval" $ do
             it "evaluates simple atom" $ do
                 let model = HM.fromList [(Symbol "p", True)]
                 eval p model `shouldBe` True
+
+            it "evaluates atom not in model" $ do
+                let model = HM.fromList []
+                eval p model `shouldBe` False
 
             it "evaluates AND operation" $ do
                 let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
@@ -47,7 +52,42 @@ spec = do
 
             it "evaluates complex expressions" $ do
                 let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                eval (AndT (OrT p q) q) model `shouldBe` False
+                eval (NotT(AndT (OrT p q) q)) model `shouldBe` True
+
+            it "evaluates implication" $ do
+                let model = HM.fromList [(Symbol "p", True), (Symbol "q", True)]
+                eval (ImpliesT p q) model `shouldBe` True
+                eval (ImpliesT p (NotT q)) model `shouldBe` False
+
+            it "evaluates biconditional" $ do
+                let model = HM.fromList [(Symbol "p", True), (Symbol "q", True)]
+                eval (BicondT p q) model `shouldBe` True
+                eval (BicondT p (NotT q)) model `shouldBe` False
+
+            describe "logical equivalences" $ do
+                it "validates De Morgan's Law for AND" $ do
+                    let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
+                    eval (NotT (AndT p q)) model `shouldBe`
+                        eval (OrT (NotT p) (NotT q)) model
+
+                it "validates De Morgan's Law for OR" $ do
+                    let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
+                    eval (NotT (OrT p q)) model `shouldBe`
+                        eval (AndT (NotT p) (NotT q)) model
+
+                it "validates double negation" $ do
+                    let model = HM.fromList [(Symbol "p", True)]
+                    eval (NotT (NotT p)) model `shouldBe` eval p model
+
+                it "validates implication elimination" $ do
+                    let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
+                    eval (ImpliesT p q) model `shouldBe`
+                        eval (OrT (NotT p) q) model
+
+                it "validates contrapositive" $ do
+                    let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
+                    eval (ImpliesT p q) model `shouldBe`
+                        eval (ImpliesT (NotT q) (NotT p)) model
 
         describe "getSymbols" $ do
             it "gets symbols from a complex proposition" $ do
