@@ -61,7 +61,10 @@ eval (Not p) model       = not $ eval p model
 eval (Implies p q) model = not (eval p model) || eval q model
 eval (Bicond p q) model  = eval p model == eval q model
 
--- | Checks if kb |= query
+-- | Checks if kb |= query 
+-- Time complexity: O(2^n) where n is the number of unique symbols
+-- This is because we need to check all possible truth value combinations
+-- by recursively trying True/False for each symbol
 doesEntail :: (Hashable a, Eq a, Ord a) => Proposition a -> Proposition a -> Set.Set (Symbol a) -> Model a -> Bool
 doesEntail kb query symbols model
     | null symbols = if eval kb model then eval query model else True
