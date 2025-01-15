@@ -1,0 +1,11 @@
+p = "The light is on"
+q = "There is electricity"
+
+knowledge(
+    p -> q
+    ~q
+)
+
+query(
+    ~p
+)

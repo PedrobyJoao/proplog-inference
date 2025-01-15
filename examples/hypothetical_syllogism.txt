@@ -1,0 +1,12 @@
+p = "It is sunny"
+q = "People go to the beach"
+r = "Ice cream sales increase"
+
+knowledge(
+    p -> q
+    q -> r
+)
+
+query(
+    p -> r
+)

@@ -4,8 +4,6 @@ import           Data.Char           (isSpace)
 import qualified Data.HashMap.Strict as HM
 import           Data.List           (dropWhile, isPrefixOf, takeWhile)
 import           Logic
-import           System.Environment  (getArgs)
-import           System.Exit         (die)
 
 -- see examples/ for file examples to be parsed
 -- input file format:
@@ -28,6 +26,15 @@ import           System.Exit         (die)
 
 type PropVarValue a = HM.HashMap (Symbol a) String
 
+-- | parse extracts vars, KB and query from a file content
+parse :: String -> Either String (PropVarValue String, Proposition String, Proposition String)
+parse contents = do
+    let cleanContents = unlines $ filter (not . null . dropWhile isSpace) $ lines contents
+    vars <- extractVars cleanContents
+    kb <- extractKB cleanContents
+    query <- extractQuery cleanContents
+    Right (vars, kb, query)
+
 -- | extractVars extracts the propositional variables and their values
 extractVars :: String -> Either String (PropVarValue String)
 extractVars contents = Right $ HM.fromList $ map parseLine $ filter isVarLine $ lines contents
@@ -44,13 +51,76 @@ extractVars contents = Right $ HM.fromList $ map parseLine $ filter isVarLine $ 
 
 -- | extractKB extracts the knowledge base from string given defined grammar
 extractKB :: String -> Either String (Proposition String)
-extractKB contents = undefined
-
+extractKB contents =
+    let
+        (_, kbSection) = break (isPrefixOf "knowledge(") $ lines contents
+    in case kbSection of
+        [] -> Left "No knowledge base found"
+        (_:rest) ->
+            let kbLines = takeWhile (/= ")") rest
+                cleanedLines = filter (not . null . dropWhile isSpace) kbLines
+                propositions = map (parseProposition . dropWhile isSpace) cleanedLines
+            in case propositions of
+                []     -> Left $ "Empty knowledge base: " ++ show rest
+                (p:ps) -> Right $ foldr And p ps
 
 -- | extractQuery extracts the query from string given defined grammar
 extractQuery :: String -> Either String (Proposition String)
-extractQuery contents = undefined
+extractQuery contents =
+    let (_, querySection) = break (isPrefixOf "query(") $ lines contents
+    in case querySection of
+        [] -> Left "No query found"
+        (_:rest) ->
+            let queryLines = takeWhile (/= ")") rest
+                cleanedLines = filter (not . null . dropWhile isSpace) queryLines
+            in case cleanedLines of
+                []    -> Left "Empty query"
+                (x:_) -> Right $ parseProposition $ dropWhile isSpace x
 
 -- | Parse a single proposition line into a Proposition
 parseProposition :: String -> Proposition String
-parseProposition = undefined
+parseProposition = parseExpr . tokenize . filter (not . (`elem` " \t"))
+  where
+    tokenize :: String -> [String]
+    tokenize [] = []
+    tokenize ('(':xs) = "(" : tokenize xs
+    tokenize (')':xs) = ")" : tokenize xs
+    tokenize ('~':xs) = "~" : tokenize xs
+    tokenize xs =
+        let (token, rest) = span (`notElem` "()~^v<->") xs
+        in if null token
+           then case rest of
+                ('-':'>':more)     -> "->" : tokenize more
+                ('<':'-':'>':more) -> "<->" : tokenize more
+                (x:more)           -> [x] : tokenize more
+                []                 -> []
+           else token : tokenize rest
+
+parseExpr :: [String] -> Proposition String
+parseExpr tokens = case parseExpr' tokens of
+    (expr, []) -> expr
+    (_, rest)  -> error $ "Unexpected tokens: " ++ show rest
+
+parseExpr' :: [String] -> (Proposition String, [String])
+parseExpr' [] = error "Empty expression"
+parseExpr' ("(":tokens) =
+    let (expr, rest) = parseExpr' tokens
+    in case rest of
+        (")":remaining) -> (expr, remaining)
+        _               -> error "Missing closing parenthesis"
+parseExpr' ("~":tokens) =
+    let (expr, rest) = parseExpr' tokens
+    in (Not expr, rest)
+parseExpr' (t:tokens)
+    | t `elem` ["->", "<->", "^", "v"] = error "Unexpected operator"
+    | otherwise = parseBinaryOp (Atom (Symbol t)) tokens
+
+parseBinaryOp :: Proposition String -> [String] -> (Proposition String, [String])
+parseBinaryOp left [] = (left, [])
+parseBinaryOp left (op:tokens) = case op of
+    ")"   -> (left, op:tokens)
+    "->"  -> let (right, rest) = parseExpr' tokens in (Implies left right, rest)
+    "<->" -> let (right, rest) = parseExpr' tokens in (Bicond left right, rest)
+    "^"   -> let (right, rest) = parseExpr' tokens in (And left right, rest)
+    "v"   -> let (right, rest) = parseExpr' tokens in (Or left right, rest)
+    _     -> error $ "Invalid operator: " ++ op

@@ -1,0 +1,15 @@
+a = "A is a knight"
+s = "A's statement is true"
+p = "B is a knight"
+
+knowledge(
+    # A says: "B is a knave"
+    a -> (~p)
+    ~a -> p
+    # Knights always tell truth, knaves always lie
+    a <-> s
+)
+
+query(
+    ~a
+)
