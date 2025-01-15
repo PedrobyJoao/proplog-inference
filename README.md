@@ -1,3 +1,7 @@
+**WIP**
+
+note: parser is broken for nested propositions :(
+
 # kb |= q?
 
 This is an inference engine tool based on **propositional logic**.
@@ -43,20 +47,20 @@ Yes, `q` is true for this model, therefore kb entails q.
 
 ## v2: Search by inference rules
 
+TODO
+
+Is this really more efficient?
+
 ## v3: Resolution Algorithm
+
+TODO
 
 ## TODOs
 
 Inference engine:
 
+- [ ] Parser: use yaml instead of txt
+- [ ] Parser: not working for nested propositions
+- [ ] Algorithm v1: do not check trees until the end when we can already discard it on the beginning
 - [ ] Algorithm v2: generate all possible inference rules and check if query is between them
-  - Note: is this really more efficient?
-- [ ] do not check trees until the end when we can already discard it on the beginning
-
-Parser:
-
-- [ ] use yaml
-
-```
-
-```
+- [ ] Algorithm v3: Resolution algorithm
