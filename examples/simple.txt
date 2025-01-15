@@ -1,0 +1,11 @@
+p = "It is raining"
+q = "The ground is wet"
+r = "There are clouds"
+
+knowledge(
+    p -> q
+    r -> p
+    r
+)
+
+query(q)

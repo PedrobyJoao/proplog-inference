@@ -56,7 +56,8 @@ common warnings
 
 library
     import:           warnings
-    exposed-modules:  Logic
+    exposed-modules:  Logic,
+                      Parser
     build-depends:    base ^>=4.18.2.1,
                      hashable,
                      unordered-containers,
@@ -93,7 +94,8 @@ test-suite logic-tests
     type:             exitcode-stdio-1.0
     import:           warnings
     main-is:         Spec.hs
-    other-modules:   LogicSpec
+    other-modules:   LogicSpec,
+                     ParserSpec
     build-depends:   base ^>=4.18.2.1,
                     logic-inference,
                     hspec ^>=2.11.7,
