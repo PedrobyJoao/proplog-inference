@@ -29,11 +29,15 @@ type PropVarValue a = HM.HashMap (Symbol a) String
 -- | parse extracts vars, KB and query from a file content
 parse :: String -> Either String (PropVarValue String, Proposition String, Proposition String)
 parse contents = do
-    let cleanContents = unlines $ filter (not . null . dropWhile isSpace) $ lines contents
+    let nonEmptyLines = filter (not . null . dropWhile isSpace) $ lines contents
+        nonCommentLines = filter (not . isCommentLine) nonEmptyLines
+        cleanContents = unlines nonCommentLines
     vars <- extractVars cleanContents
     kb <- extractKB cleanContents
     query <- extractQuery cleanContents
     Right (vars, kb, query)
+  where
+    isCommentLine line = "#" `isPrefixOf` dropWhile isSpace line
 
 -- | extractVars extracts the propositional variables and their values
 extractVars :: String -> Either String (PropVarValue String)
