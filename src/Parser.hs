@@ -57,11 +57,11 @@ extractVars contents = Right $ HM.fromList $ map parseLine $ filter isVarLine $ 
 extractKB :: String -> Either String (Proposition String)
 extractKB contents =
     let
-        (_, kbSection) = break (isPrefixOf "knowledge(") $ lines contents
+        (_, kbSection) = break (isPrefixOf "knowledge[") $ lines contents
     in case kbSection of
         [] -> Left "No knowledge base found"
         (_:rest) ->
-            let kbLines = takeWhile (/= ")") rest
+            let kbLines = takeWhile (/= "]") rest
                 cleanedLines = filter (not . null . dropWhile isSpace) kbLines
                 propositions = map (parseProposition . dropWhile isSpace) cleanedLines
             in case propositions of
@@ -71,11 +71,11 @@ extractKB contents =
 -- | extractQuery extracts the query from string given defined grammar
 extractQuery :: String -> Either String (Proposition String)
 extractQuery contents =
-    let (_, querySection) = break (isPrefixOf "query(") $ lines contents
+    let (_, querySection) = break (isPrefixOf "query[") $ lines contents
     in case querySection of
         [] -> Left "No query found"
         (_:rest) ->
-            let queryLines = takeWhile (/= ")") rest
+            let queryLines = takeWhile (/= "]") rest
                 cleanedLines = filter (not . null . dropWhile isSpace) queryLines
             in case cleanedLines of
                 []    -> Left "Empty query"
