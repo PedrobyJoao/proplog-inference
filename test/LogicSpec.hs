@@ -1,30 +1,9 @@
-{-# LANGUAGE PatternSynonyms #-}
 module LogicSpec where
 
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Set            as Set
 import           Logic
 import           Test.Hspec
-
-pattern AndT :: Proposition a -> Proposition a -> Proposition a
-pattern AndT a b <- Logic.And a b
-  where AndT a b = Logic.And a b
-
-pattern OrT :: Proposition a -> Proposition a -> Proposition a
-pattern OrT a b <- Logic.Or a b
-  where OrT a b = Logic.Or a b
-
-pattern ImpliesT :: Proposition a -> Proposition a -> Proposition a
-pattern ImpliesT a b <- Logic.Implies a b
-  where ImpliesT a b = Logic.Implies a b
-
-pattern BicondT :: Proposition a -> Proposition a -> Proposition a
-pattern BicondT a b <- Logic.Bicond a b
-  where BicondT a b = Logic.Bicond a b
-
-pattern NotT :: Proposition a -> Proposition a
-pattern NotT a <- Logic.Not a
-  where NotT a = Logic.Not a
 
 -- Smart constructor for atoms now needs type annotation
 p, q, r :: Proposition String
@@ -47,50 +26,50 @@ spec = do
 
             it "evaluates AND operation" $ do
                 let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                eval (AndT p q) model `shouldBe` False
+                eval (And p q) model `shouldBe` False
 
             it "evaluates complex expressions" $ do
                 let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                eval (NotT(AndT (OrT p q) q)) model `shouldBe` True
+                eval (Not(And (Or p q) q)) model `shouldBe` True
 
             it "evaluates implication" $ do
                 let model = HM.fromList [(Symbol "p", True), (Symbol "q", True)]
-                eval (ImpliesT p q) model `shouldBe` True
-                eval (ImpliesT p (NotT q)) model `shouldBe` False
+                eval (Implies p q) model `shouldBe` True
+                eval (Implies p (Not q)) model `shouldBe` False
 
             it "evaluates biconditional" $ do
                 let model = HM.fromList [(Symbol "p", True), (Symbol "q", True)]
-                eval (BicondT p q) model `shouldBe` True
-                eval (BicondT p (NotT q)) model `shouldBe` False
+                eval (Bicond p q) model `shouldBe` True
+                eval (Bicond p (Not q)) model `shouldBe` False
 
             describe "logical equivalences" $ do
                 it "validates De Morgan's Law for AND" $ do
                     let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                    eval (NotT (AndT p q)) model `shouldBe`
-                        eval (OrT (NotT p) (NotT q)) model
+                    eval (Not (And p q)) model `shouldBe`
+                        eval (Or (Not p) (Not q)) model
 
                 it "validates De Morgan's Law for OR" $ do
                     let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                    eval (NotT (OrT p q)) model `shouldBe`
-                        eval (AndT (NotT p) (NotT q)) model
+                    eval (Not (Or p q)) model `shouldBe`
+                        eval (And (Not p) (Not q)) model
 
                 it "validates double negation" $ do
                     let model = HM.fromList [(Symbol "p", True)]
-                    eval (NotT (NotT p)) model `shouldBe` eval p model
+                    eval (Not (Not p)) model `shouldBe` eval p model
 
                 it "validates implication elimination" $ do
                     let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                    eval (ImpliesT p q) model `shouldBe`
-                        eval (OrT (NotT p) q) model
+                    eval (Implies p q) model `shouldBe`
+                        eval (Or (Not p) q) model
 
                 it "validates contrapositive" $ do
                     let model = HM.fromList [(Symbol "p", True), (Symbol "q", False)]
-                    eval (ImpliesT p q) model `shouldBe`
-                        eval (ImpliesT (NotT q) (NotT p)) model
+                    eval (Implies p q) model `shouldBe`
+                        eval (Implies (Not q) (Not p)) model
 
         describe "getSymbols" $ do
             it "gets symbols from a complex proposition" $ do
-                let prop = AndT p (OrT q r)
+                let prop = And p (Or q r)
                 getSymbols prop `shouldBe` Set.fromList [Symbol "p", Symbol "q", Symbol "r"]
 
         describe "doesEntail" $ do
@@ -101,25 +80,25 @@ spec = do
                 doesEntail kb query symbols HM.empty `shouldBe` True
 
             it "validates modus ponens" $ do
-                let kb = AndT (ImpliesT p q) p
+                let kb = And (Implies p q) p
                     query = q
                     symbols = getSymbols kb `Set.union` getSymbols query
                 doesEntail kb query symbols HM.empty `shouldBe` True
 
             it "validates modus tollens" $ do
-                let kb = AndT (ImpliesT p q) (NotT q)
-                    query = NotT p
+                let kb = And (Implies p q) (Not q)
+                    query = Not p
                     symbols = getSymbols kb `Set.union` getSymbols query
                 doesEntail kb query symbols HM.empty `shouldBe` True
 
             it "validates disjunctive syllogism" $ do
-                let kb = AndT (OrT p q) (NotT p)
+                let kb = And (Or p q) (Not p)
                     query = q
                     symbols = getSymbols kb `Set.union` getSymbols query
                 doesEntail kb query symbols HM.empty `shouldBe` True
 
             it "rejects invalid entailment" $ do
-                let kb = OrT p q
+                let kb = Or p q
                     query = p
                     symbols = getSymbols kb `Set.union` getSymbols query
                 doesEntail kb query symbols HM.empty `shouldBe` False
