@@ -6,7 +6,6 @@ import qualified Data.Set            as Set
 import           Logic
 import           Test.Hspec
 
--- Pattern synonyms remain the same but need type annotations
 pattern AndT :: Proposition a -> Proposition a -> Proposition a
 pattern AndT a b <- Logic.And a b
   where AndT a b = Logic.And a b

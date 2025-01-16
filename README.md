@@ -6,10 +6,10 @@ note: parser is broken for nested propositions :(
 
 This is an inference engine tool based on **propositional logic**.
 
-Given a knowledge base `kb` with a set of given statements, the inference engine is capable of
+Given a knowledge base `kb` with a set of statements, the inference engine is capable of
 telling if a given statement `q` is entailed by the knowledge base.
 
-In summary, this engine checks if `kb |= q`
+Basically, the engine checks if `kb |= q`
 
 ## v1: Recursive enumeration and validation of models
 
