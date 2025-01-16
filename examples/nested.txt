@@ -1,0 +1,11 @@
+p = "some proposition p"
+q = "some proposition q"
+r = "some proposition r"
+
+knowledge[
+    (p v q) ^ (r v p) ^ (~q v ~r v p)
+]
+
+query[
+    p
+]

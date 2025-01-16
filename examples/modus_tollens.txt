@@ -1,11 +1,11 @@
 p = "The light is on"
 q = "There is electricity"
 
-knowledge(
+knowledge[
     p -> q
     ~q
-)
+]
 
-query(
+query[
     ~p
-)
+]

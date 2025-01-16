@@ -3,15 +3,15 @@ n = "Norwegian lives in first house"
 b = "Blue house is next to Norwegian"
 h = "Horses are kept next to blue house"
 
-knowledge(
+knowledge[
     n
     b
     h
     # If horses are next to blue house, and blue house is next to Norwegian
     # then German (who lives with horses) can't own fish
     (h ^ b) -> ~g
-)
+]
 
-query(
+query[
     ~g
-)
+]

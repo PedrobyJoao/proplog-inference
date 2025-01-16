@@ -101,30 +101,80 @@ parseProposition = parseExpr . tokenize . filter (not . (`elem` " \t"))
            else token : tokenize rest
 
 parseExpr :: [String] -> Proposition String
-parseExpr tokens = case parseExpr' tokens of
-    (expr, []) -> expr
-    (_, rest)  -> error $ "Unexpected tokens: " ++ show rest
+parseExpr [] = error "Empty expression"
+parseExpr tokens = 
+    let (expr, rest) = parseExpr' tokens
+        rest' = dropWhile (== ")") rest
+    in if null rest'
+       then expr
+       else error $ "Unexpected tokens after parsing: " ++ show rest'
+
+-- Operator precedence (highest to lowest)
+-- 1. ~ (not)
+-- 2. ^ (and)
+-- 3. v (or)
+-- 4. -> (implies)
+-- 5. <-> (biconditional)
 
 parseExpr' :: [String] -> (Proposition String, [String])
-parseExpr' [] = error "Empty expression"
-parseExpr' ("(":tokens) =
+parseExpr' tokens = parseBiconditional tokens
+
+parseBiconditional :: [String] -> (Proposition String, [String])
+parseBiconditional tokens =
+    let (left, rest) = parseImplication tokens
+    in parseBiconditional' left rest
+
+parseBiconditional' :: Proposition String -> [String] -> (Proposition String, [String])
+parseBiconditional' left ("<->":tokens) =
+    let (right, rest) = parseImplication tokens
+    in parseBiconditional' (Bicond left right) rest
+parseBiconditional' left rest = (left, rest)
+
+parseImplication :: [String] -> (Proposition String, [String])
+parseImplication tokens =
+    let (left, rest) = parseDisjunction tokens
+    in parseImplication' left rest
+
+parseImplication' :: Proposition String -> [String] -> (Proposition String, [String])
+parseImplication' left ("->":tokens) =
+    let (right, rest) = parseDisjunction tokens
+    in parseImplication' (Implies left right) rest
+parseImplication' left rest = (left, rest)
+
+parseDisjunction :: [String] -> (Proposition String, [String])
+parseDisjunction tokens =
+    let (left, rest) = parseConjunction tokens
+    in parseDisjunction' left rest
+
+parseDisjunction' :: Proposition String -> [String] -> (Proposition String, [String])
+parseDisjunction' left ("v":tokens) =
+    let (right, rest) = parseConjunction tokens
+    in parseDisjunction' (Or left right) rest
+parseDisjunction' left rest = (left, rest)
+
+parseConjunction :: [String] -> (Proposition String, [String])
+parseConjunction tokens =
+    let (left, rest) = parseNegation tokens
+    in parseConjunction' left rest
+
+parseConjunction' :: Proposition String -> [String] -> (Proposition String, [String])
+parseConjunction' left ("^":tokens) =
+    let (right, rest) = parseNegation tokens
+    in parseConjunction' (And left right) rest
+parseConjunction' left rest = (left, rest)
+
+parseNegation :: [String] -> (Proposition String, [String])
+parseNegation [] = error "Empty expression"
+parseNegation ("~":tokens) = 
+    let (expr, rest) = parseNegation tokens
+    in (Not expr, rest)
+parseNegation ("(":tokens) =
     let (expr, rest) = parseExpr' tokens
     in case rest of
         (")":remaining) -> (expr, remaining)
-        _               -> error "Missing closing parenthesis"
-parseExpr' ("~":tokens) =
-    let (expr, rest) = parseExpr' tokens
-    in (Not expr, rest)
-parseExpr' (t:tokens)
-    | t `elem` ["->", "<->", "^", "v"] = error "Unexpected operator"
-    | otherwise = parseBinaryOp (Atom (Symbol t)) tokens
-
-parseBinaryOp :: Proposition String -> [String] -> (Proposition String, [String])
-parseBinaryOp left [] = (left, [])
-parseBinaryOp left (op:tokens) = case op of
-    ")"   -> (left, op:tokens)
-    "->"  -> let (right, rest) = parseExpr' tokens in (Implies left right, rest)
-    "<->" -> let (right, rest) = parseExpr' tokens in (Bicond left right, rest)
-    "^"   -> let (right, rest) = parseExpr' tokens in (And left right, rest)
-    "v"   -> let (right, rest) = parseExpr' tokens in (Or left right, rest)
-    _     -> error $ "Invalid operator: " ++ op
+        [] -> error "Unexpected end of input - missing closing parenthesis"
+        _ -> error $ "Unexpected tokens after closing parenthesis: " ++ show rest
+parseNegation (")":_) = error "Unexpected closing parenthesis"
+parseNegation (t:tokens)
+    | t `elem` ["->", "<->", "^", "v"] = error $ "Unexpected operator: " ++ t
+    | otherwise = (Atom (Symbol t), tokens)

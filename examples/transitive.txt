@@ -2,11 +2,11 @@ p = "It is sunny"
 q = "People go to the beach"
 r = "Ice cream sales increase"
 
-knowledge(
+knowledge[
     p -> q
     q -> r
-)
+]
 
-query(
+query[
     p -> r
-)
+]
