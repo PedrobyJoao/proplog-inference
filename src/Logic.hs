@@ -75,14 +75,34 @@ applyInferenceRules (absorption -> Just result)            = Just result
 applyInferenceRules (constructiveDilemma -> Just result)  = Just result
 applyInferenceRules (destructiveDilemma -> Just result)   = Just result
 applyInferenceRules p = case p of
-    Not (Not x)    -> Just x -- double negation elimination
-    Implies x y    -> Just (Or (Not x) y) -- implication elimination
-    Bicond x y     -> Just (And (Implies x y) (Implies y x)) -- bicondition elimination
-    Not (And x y)  -> Just (Or (Not x) (Not y)) -- De Morgan's law
-    Not (Or x y)   -> Just (And (Not x) (Not y)) -- De Morgan's law
-    And x (Or y z) -> Just (Or (And x y) (And x z)) -- distribution
-    Or x (And y z) -> Just (And (Or x y) (Or x z)) -- distribution
-    _              -> Nothing
+    -- double negation elimination
+    Not (Not x)                       -> Just x
+
+    -- implication elimination
+    Implies x y                       -> Just (Or (Not x) y)
+    (Or (Not x) y)                    -> Just (Implies x y)
+
+    -- bicondition elimination
+    Bicond x y                        -> Just (And (Implies x y) (Implies y x))
+    (And (Implies x y) (Implies y2 x2))
+         | x == x2 && y == y2               -> Just (Bicond x y)
+
+    -- De Morgan's law AND
+    Not (And x y)                     -> Just (Or (Not x) (Not y))
+
+    -- De Morgan's law OR
+    Not (Or x y)                      -> Just (And (Not x) (Not y))
+    And (Not x) (Not y)               -> Just (Not (Or x y))
+
+    -- distribution AND
+    And x (Or y z)                    -> Just (Or (And x y) (And x z))
+    Or (And x y) (And x2 z)
+        | x == x2                    -> Just (And x (Or y z))
+
+    -- distribution OR
+    Or x (And y z)                    -> Just (And (Or x y) (Or x z))
+
+    _                                 -> Nothing
 
 
 -- | Evaluates if a proposition is true given a model
