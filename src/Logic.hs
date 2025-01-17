@@ -50,7 +50,7 @@ data Proposition a
     | Not (Proposition a)
     | Implies (Proposition a) (Proposition a)
     | Bicond (Proposition a) (Proposition a)
-    deriving (Show, Eq)
+    deriving (Show, Ord, Eq)
 
 type Model a = HM.HashMap (Symbol a) Bool
 
@@ -60,50 +60,46 @@ type Model a = HM.HashMap (Symbol a) Bool
 -- TODO: maybe add mode inference rules
 --
 -- TODO: maybe a more elegant way of pattern matching
--- on nthe more complex ones
-applyInferenceRules :: Eq a => Proposition a -> Maybe (Proposition a)
-applyInferenceRules (Atom _) = Nothing
-applyInferenceRules (modusPonens -> Just result)           = Just result
-applyInferenceRules (modusTollens -> Just result)          = Just result
-applyInferenceRules (hypotheticalSyllogism -> Just result) = Just result
-applyInferenceRules (addition -> Just result)              = Just result
-applyInferenceRules (simplificationP -> Just result)        = Just result
-applyInferenceRules (simplificationQ -> Just result)        = Just result
-applyInferenceRules (disjunctiveSyllogism -> Just result) = Just result
-applyInferenceRules (resolution -> Just result)            = Just result
-applyInferenceRules (absorption -> Just result)            = Just result
-applyInferenceRules (constructiveDilemma -> Just result)  = Just result
-applyInferenceRules (destructiveDilemma -> Just result)   = Just result
+-- on the more complex ones
+applyInferenceRules :: (Ord a, Eq a) => Proposition a -> Set.Set (Proposition a)
+applyInferenceRules (Atom _) = Set.empty
+applyInferenceRules (modusPonens -> Just result)           = Set.singleton result
+applyInferenceRules (modusTollens -> Just result)          = Set.singleton result
+applyInferenceRules (hypotheticalSyllogism -> Just result) = Set.singleton result
+applyInferenceRules (addition -> Just result)              = Set.singleton result
+applyInferenceRules (simplificationP -> Just result)        = Set.singleton result
+applyInferenceRules (simplificationQ -> Just result)        = Set.singleton result
+applyInferenceRules (disjunctiveSyllogism -> Just result) = Set.singleton result
+applyInferenceRules (resolution -> Just result)            = Set.singleton result
+applyInferenceRules (absorption -> Just result)            = Set.singleton result
+applyInferenceRules (constructiveDilemma -> Just result)  = Set.singleton result
+applyInferenceRules (destructiveDilemma -> Just result)   = Set.singleton result
 applyInferenceRules p = case p of
     -- double negation elimination
-    Not (Not x)                       -> Just x
+    Not (Not x)                       -> Set.singleton x
 
-    -- implication elimination
-    Implies x y                       -> Just (Or (Not x) y)
-    (Or (Not x) y)                    -> Just (Implies x y)
+    -- implication elimination and contraposition
+    Implies x y                       -> Set.fromList [Or (Not x) y, Implies (Not y) (Not x)]
 
     -- bicondition elimination
-    Bicond x y                        -> Just (And (Implies x y) (Implies y x))
-    (And (Implies x y) (Implies y2 x2))
-         | x == x2 && y == y2               -> Just (Bicond x y)
+    Bicond x y                        -> Set.fromList [Implies x y, Implies y x]
 
     -- De Morgan's law AND
-    Not (And x y)                     -> Just (Or (Not x) (Not y))
+    Not (And x y)                     -> Set.singleton (Or (Not x) (Not y))
 
     -- De Morgan's law OR
-    Not (Or x y)                      -> Just (And (Not x) (Not y))
-    And (Not x) (Not y)               -> Just (Not (Or x y))
+    Not (Or x y)                      -> Set.singleton (And (Not x) (Not y))
+    And (Not x) (Not y)               -> Set.singleton (Not (Or x y))
 
     -- distribution AND
-    And x (Or y z)                    -> Just (Or (And x y) (And x z))
+    And x (Or y z)                    -> Set.singleton (Or (And x y) (And x z))
     Or (And x y) (And x2 z)
-        | x == x2                    -> Just (And x (Or y z))
+        | x == x2                    -> Set.singleton (And x (Or y z))
 
     -- distribution OR
-    Or x (And y z)                    -> Just (And (Or x y) (Or x z))
+    Or x (And y z)                    -> Set.singleton (And (Or x y) (Or x z))
 
-    _                                 -> Nothing
-
+    _                                 -> Set.empty
 
 -- | Evaluates if a proposition is true given a model
 eval :: (Hashable a, Eq a) => Proposition a -> Model a -> Bool
